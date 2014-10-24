@@ -44,10 +44,10 @@
 
 
 import sys
-import os
-import math
 import Bio
 import re
+import numpy
+import os
 from Bio.SeqUtils import MeltingTemp
 from Bio.Blast import NCBIXML
 from Bio.Blast import Record
@@ -77,7 +77,7 @@ else:
 try:
     maxlen = int(sys.argv[4])
 except:
-    print 'Warning: fourth argument does not appear to be an integer. Assigning default maximum length (1000 nt).'
+    print 'Warning: fourth argument does not appear to be an integer. Assigning default maximum \n length (1000 nt or query length minus 2, whichever is shorter).'
     maxlen = 1000
 else:
     maxlen = int(sys.argv[4])
@@ -90,8 +90,20 @@ except:
 else:
     mintm = float(sys.argv[5])
     
-default_fns = 'query id, subject ids, % identity, alignment length, mismatches, gap opens, q. start, q. end, s. start, s. end, evalue, bit score'   
+verbose = False
+colour_scale = 15
 
+
+from Bio import SeqIO
+for seq_record in SeqIO.parse(apefile, "genbank"):
+    full_query = str(seq_record.seq)
+### print query sequence: ###
+#    print full_query
+    qlen = len(full_query)
+    if qlen - 2 < maxlen:
+        maxlen = qlen - 2
+        print "warning: BLAST query was shorter than maximum hit length. To avoid identifying its"
+        print "own transcript as an off-target, setting maxlen to 2 nt less than the query length."
 
 opp = int(0)
 same = int(0)
@@ -111,12 +123,12 @@ with open(bfile, 'r') as blin:
             match = hsp.match
             transcript = alignment.title   
             spaced = ""
-            for i in range(len(match)-1):
+            for i in range(len(match)):
                 if match[i] == " ":
                     spaced += "-"
                 else:
                     spaced += hsp.query[i]
-            for seq in spaced.split("-"):
+            for seq in spaced.split('-'):
                 if len(seq) < minlen:
                     continue
                 if len(seq) > maxlen:
@@ -125,26 +137,34 @@ with open(bfile, 'r') as blin:
                 if tm < mintm:
                     continue
                 if seq in cross_hits:
-                    print "warning: more than one sequence with exact same cross-homology. Reporting one only."
+                    print "warning: more than one blast hit with identical cross-homology sequence. Reporting one only."
+                    cross_hits[seq][2] += 1
                     continue
-                cross_hits[seq]=[tm, transcript]
+                cross_hits[seq]=[tm, transcript, 1]
 print "same: "+str(same) + " opp: "+str(opp)
-from Bio import SeqIO
-for seq_record in SeqIO.parse(apefile, "genbank"):
-    full_query = str(seq_record.seq)
-    print full_query
+
+
+seqs = list(seq for seq in cross_hits)  # get unordered list of seqs
+tms = numpy.array(list(cross_hits[seq][0] for seq in seqs)) # get list of tms in same order as the list of seqs
+temp = tms.argsort()
+ranks = numpy.empty(len(tms), int)
+ranks[temp] = numpy.arange(len(tms)) # this is the rank for both tms and seqs (each rank is unique even if tm is a tie)
+ordered_seqs = ['na'] * len(ranks)
+for i in enumerate(ranks, 0):
+    ordered_seqs[i[1]] = seqs[i[0]]
 
 feats = str()
-for seq in cross_hits:
-    tm, transcript = cross_hits[seq]
-    green = format(int(min((tm-40)*20, 255)), '02x')
+for seq in ordered_seqs:  # make high-tm hits last; thus they are displayed on top of the others
+    tm, transcript, multi = cross_hits[seq]
+    if verbose:
+        print "tm: "+str(tm)+"number of off-target transcripts with this hit: "+str(multi)+ "reported transcript: "+transcript
+    green = format(int(min((tm-mintm)*colour_scale, 255)), '02x')
     colour = '#ff'+str(green[:2])+'00'
     starts = [m.start() for m in re.finditer('(?=%s)' % seq, full_query)]
     for st in starts:
-        end = str(st + len(seq))
-        
-        feats += '     blast_hit       '+str(st)+'..'+end
-        feats += '\n                     /label='+transcript
+        end = st + len(seq)
+        feats += '     blast_hit       ' +str(st+1)+'..'+str(end)
+        feats += '\n                     /label=tm%.2f' % tm  +"|"+transcript[:42]
         feats += '\n                     /ApEinfo_fwdcolor='+colour
         feats += '\n                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0}'
         feats += '\n'
