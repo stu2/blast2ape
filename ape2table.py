@@ -75,7 +75,7 @@ with open(apefile, 'r') as ape_in:
             
 with open(tablefile, 'w') as tout:
     for row in features:
-        #if not row[0] == 'blast_hit':
+        if not row[0].startswith('blast_hit'):
             seq = (  query[int(row[1])-1:int(row[2])]  )
             row.append(seq)
             if calc_tms:

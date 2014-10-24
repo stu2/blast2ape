@@ -97,8 +97,6 @@ colour_scale = 15
 from Bio import SeqIO
 for seq_record in SeqIO.parse(apefile, "genbank"):
     full_query = str(seq_record.seq)
-### print query sequence: ###
-#    print full_query
     qlen = len(full_query)
     if qlen - 2 < maxlen:
         maxlen = qlen - 2
