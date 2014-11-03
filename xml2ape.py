@@ -64,8 +64,9 @@ colour_scale = 15
 export_table = ''
 apefile = ''
 bfile = ''
+revstrand = False
 
-options, remainder = getopt.getopt(sys.argv[1:], 'b:a:l:x:t:h')
+options, remainder = getopt.getopt(sys.argv[1:], 'b:a:l:x:t:hr')
 for opt, arg in options:
     if opt == '-b':
         bfile = arg
@@ -89,6 +90,8 @@ for opt, arg in options:
     if opt == '-h':
         print usage
         exit()
+    if opt == '-r':
+        revstrand = True
         
 if not os.path.isfile(apefile):
     print 'ApE file \''+apefile+'\' does not appear to exist in the current directory. Exiting.'
@@ -127,7 +130,8 @@ with open(bfile, 'r') as blin:
             # skip if opposite strand:
             if hsp.sbjct_end < hsp.sbjct_start:
                 opp += 1
-                continue
+                if not revstrand:
+                    continue
             
             query = hsp.query
             match = hsp.match
@@ -153,8 +157,10 @@ with open(bfile, 'r') as blin:
                     continue
                 unique += 1
                 cross_hits[seq]=[tm, transcript, 1]
-
-print "Included "+str(unique) + " unique hits from "+str(same)+" total hits passing thresholds from same strand."
+if revstrand:
+    print "Included "+str(unique) + " unique hits from "+str(same)+" total hits passing thresholds from both strands."
+else:
+    print "Included "+str(unique) + " unique hits from "+str(same)+" total hits passing thresholds from same strand."
 
 seqs = list(seq for seq in cross_hits)  # get unordered list of seqs
 tms = numpy.array(list(cross_hits[seq][0] for seq in seqs)) # get list of tms in same order as the list of seqs
