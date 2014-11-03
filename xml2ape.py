@@ -62,21 +62,15 @@ mintm = float(40.0)
 verbose = False
 colour_scale = 15
 export_table = ''
+apefile = ''
+bfile = ''
 
 options, remainder = getopt.getopt(sys.argv[1:], 'b:a:l:x:t:h')
 for opt, arg in options:
     if opt == '-b':
         bfile = arg
-        if not os.path.isfile(bfile):
-            print 'Blast file '+bfile+' does not appear to exist in the current directory. Exiting.'
-            print usage
-            exit()
     if opt == '-a':
         apefile = arg
-        if not os.path.isfile(apefile):
-            print 'ApE file '+apefile+' does not appear to exist in the current directory. Exiting.'
-            print usage
-            exit()
     if opt == '-l':
         try:
             minlen = int(arg)
@@ -96,8 +90,15 @@ for opt, arg in options:
         print usage
         exit()
         
-print "APEFILE: "+apefile
-    
+if not os.path.isfile(apefile):
+    print 'ApE file \''+apefile+'\' does not appear to exist in the current directory. Exiting.'
+    print usage
+    exit()
+
+if not os.path.isfile(bfile):
+    print 'Blast file \''+bfile+'\' does not appear to exist in the current directory. Exiting.'
+    print usage
+    exit()   
 i=0
 for seq_record in SeqIO.parse(apefile, "genbank"):
     i+=1
@@ -111,10 +112,14 @@ for seq_record in SeqIO.parse(apefile, "genbank"):
 if i>1:
     print "Warning: more than one sequence was detected in ApE file. Unexpected results may occur!"
 
+print "Minimum tm cutoff: "+str(mintm)+". Minimum length of perfect homology: "+str(minlen)+". Maximum length of perfect homology: "+str(maxlen)+"."
+ 
 opp = int(0)
 same = int(0)
+unique = int(0)
 cross_hits=dict()
 with open(bfile, 'r') as blin:
+    print "Parsing xml file..."
     brecs = NCBIXML.read(blin)
     for alignment in brecs.alignments:
         for hsp in alignment.hsps:
@@ -143,11 +148,12 @@ with open(bfile, 'r') as blin:
                 if tm < mintm:
                     continue
                 if seq in cross_hits:
-                    print "warning: more than one blast hit with identical cross-homology sequence. Reporting one only."
+                    #print "warning: more than one blast hit with identical cross-homology sequence. Reporting one only."
                     cross_hits[seq][2] += 1
                     continue
+                unique += 1
                 cross_hits[seq]=[tm, transcript, 1]
-print "same: "+str(same) + " opp: "+str(opp)
+print "Included "+str(unique) + " unique hits from "+str(same)+" total hits from same strand. Excluded "+str(opp)+" hits from opposite strand."
 
 
 seqs = list(seq for seq in cross_hits)  # get unordered list of seqs
