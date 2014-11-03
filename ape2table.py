@@ -29,26 +29,41 @@
 import sys
 try:
     import Bio
+    from Bio.SeqUtils import MeltingTemp
+    print "importing Biopython"
+    calc_tms =True
 except:
     print "Cannot detect Biopython. Cannot calculate primer Tms\n"
     calc_tms = False
-else:
-    calc_tms =True
-    import Bio
-    from Bio.SeqUtils import MeltingTemp
 import re
 import os
+import getopt
 
 
-usage = 'Usage: python ap.py  blast_out_xml_file  apefile  <minimum alignment length>  <maximum alignment length>  <min tm>'
-   
-apefile = sys.argv[1]
-if not os.path.isfile(apefile):
-    print apefile+' does not appear to exist in the current directory. Exiting.'
+usage = 'Usage: python ape2table.py  -a apefile.ape <-o output_file.txt>'
+
+tablefile = "ape2table_output.txt"
+options, remainder = getopt.getopt(sys.argv[1:], 'a:o:h')
+for opt, arg in options:
+    if opt == '-a':
+        apefile = arg
+        if not os.path.isfile(apefile):
+            print 'Ape file '+apefile+' does not appear to exist in the current directory. Exiting.'
+            print usage
+            exit()
+    if opt == '-o':
+        tablefile = arg
+    if opt == '-h':
+        print usage
+        exit()
+    if opt == '-o':
+        tablefile = arg
+        
+if os.path.isfile(tablefile):
+    print "Warning: file "+tablefile+" already exists in the current directory. Exiting to avoid overwrite of data."
+    print "Please rename or delete this file or nominate a different file name using the -o argument."
     print usage
     exit()
-
-tablefile = sys.argv[2]
 
 features = list()
 query = str('')
@@ -74,6 +89,10 @@ with open(apefile, 'r') as ape_in:
             query += line_seq.rstrip()
             
 with open(tablefile, 'w') as tout:
+    header = "feat_type\tstart\tend\tsequence"
+    if calc_tms:
+        header += "\ttm"
+    print >> tout, header
     for row in features:
         if not row[0].startswith('blast_hit'):
             seq = (  query[int(row[1])-1:int(row[2])]  )
