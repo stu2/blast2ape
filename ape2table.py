@@ -40,10 +40,12 @@ import os
 import getopt
 
 
-usage = 'Usage: python ape2table.py  -a apefile.ape <-o output_file.txt>'
+usage = 'Usage: python ape2table.py  -a apefile.ape <-o output_file.txt> -i'
+
 
 tablefile = "ape2table_output.txt"
-options, remainder = getopt.getopt(sys.argv[1:], 'a:o:h')
+include_blast_hits = False
+options, remainder = getopt.getopt(sys.argv[1:], 'a:o:hi')
 for opt, arg in options:
     if opt == '-a':
         apefile = arg
@@ -58,6 +60,8 @@ for opt, arg in options:
         exit()
     if opt == '-o':
         tablefile = arg
+    if opt == '-i':
+        include_blast_hits = True
         
 if os.path.isfile(tablefile):
     print "Warning: file "+tablefile+" already exists in the current directory. Exiting to avoid overwrite of data."
@@ -94,7 +98,7 @@ with open(tablefile, 'w') as tout:
         header += "\ttm"
     print >> tout, header
     for row in features:
-        if not row[0].startswith('blast_hit'):
+        if include_blast_hits or not row[0].startswith('blast_hit'):
             seq = (  query[int(row[1])-1:int(row[2])]  )
             row.append(seq)
             if calc_tms:
@@ -102,6 +106,7 @@ with open(tablefile, 'w') as tout:
                 row.append( tm )
             row = list(str(r) for r in row)
             print >> tout, '\t'.join(row)
+print "Exported table, see: "+tablefile
 
 
 
