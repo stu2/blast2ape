@@ -24,7 +24,9 @@
     displayed.
     
     Be warned that ApE may run slowly or even crash if the minimum alignment size
-    is too low, because thousands more hits will be displayed as features.
+    is too low, because thousands more hits will be displayed as features. Also note
+    that the number of hits reported may be more than in the XML file, as imperfectly
+    matched hits will be split up at the site of the mismatches into smaller hits.
     
     Instructions:
 

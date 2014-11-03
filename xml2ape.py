@@ -128,7 +128,6 @@ with open(bfile, 'r') as blin:
             if hsp.sbjct_end < hsp.sbjct_start:
                 opp += 1
                 continue
-            same += 1
             
             query = hsp.query
             match = hsp.match
@@ -147,6 +146,7 @@ with open(bfile, 'r') as blin:
                 tm = MeltingTemp.Tm_staluc(seq)
                 if tm < mintm:
                     continue
+                same += 1
                 if seq in cross_hits:
                     #print "warning: more than one blast hit with identical cross-homology sequence. Reporting one only."
                     cross_hits[seq][2] += 1
@@ -154,7 +154,7 @@ with open(bfile, 'r') as blin:
                 unique += 1
                 cross_hits[seq]=[tm, transcript, 1]
 
-print "Included "+str(unique) + " unique hits from "+str(same)+" total hits from same strand. Excluded "+str(opp)+" hits from opposite strand."
+print "Included "+str(unique) + " unique hits from "+str(same)+" total hits passing thresholds from same strand."
 
 seqs = list(seq for seq in cross_hits)  # get unordered list of seqs
 tms = numpy.array(list(cross_hits[seq][0] for seq in seqs)) # get list of tms in same order as the list of seqs
