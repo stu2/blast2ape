@@ -44,6 +44,7 @@
 
 
 import sys
+import getopt
 import Bio
 import re
 import numpy
@@ -51,57 +52,64 @@ import os
 from Bio.SeqUtils import MeltingTemp
 from Bio.Blast import NCBIXML
 from Bio.Blast import Record
+from Bio import SeqIO
 
-usage = 'Usage: python xml2ape.py  blast_out_xml_file  apefile  <minimum alignment length>  <maximum alignment length>  <min tm>'
+usage = 'Usage: python xml2ape.py -b blast_out_xml_file -a apefile  <-l minimum alignment length>  <-x maximum alignment length>  <-t min tm>'
 
-bfile = sys.argv[1]
-if not os.path.isfile(bfile):
-    print bfile+' does not appear to exist in the current directory. Exiting.'
-    print usage
-    exit()
-    
-apefile = sys.argv[2]
-if not os.path.isfile(apefile):
-    print apefile+' does not appear to exist in the current directory. Exiting.'
-    print usage
-    exit()
-    
-try:
-    minlen = int(sys.argv[3])
-except:
-    print 'Warning: third argument does not appear to be an integer. Assigning default minimum length (15 nt).'
-    minlen = 15
-else:
-    minlen = int(sys.argv[3])
-    
-try:
-    maxlen = int(sys.argv[4])
-except:
-    print 'Warning: fourth argument does not appear to be an integer. Assigning default maximum \n length (1000 nt or query length minus 2, whichever is shorter).'
-    maxlen = 1000
-else:
-    maxlen = int(sys.argv[4])
-    
-try:
-    mintm = float(sys.argv[5])
-except:
-    print 'Warning: fourth argument is absent or not a number. Assigning default minimum percent identity (100).'
-    mintm = float(40.0)
-else:
-    mintm = float(sys.argv[5])
-    
+minlen = 15
+maxlen = 1000
+mintm = float(40.0)
 verbose = False
 colour_scale = 15
+export_table = ''
 
-
-from Bio import SeqIO
+options, remainder = getopt.getopt(sys.argv[1:], 'b:a:l:x:t:h')
+for opt, arg in options:
+    if opt == '-b':
+        bfile = arg
+        if not os.path.isfile(bfile):
+            print 'Blast file '+bfile+' does not appear to exist in the current directory. Exiting.'
+            print usage
+            exit()
+    if opt == '-a':
+        apefile = arg
+        if not os.path.isfile(apefile):
+            print 'ApE file '+apefile+' does not appear to exist in the current directory. Exiting.'
+            print usage
+            exit()
+    if opt == '-l':
+        try:
+            minlen = int(arg)
+        except:
+            print 'Warning: minimum length argument does not appear to be an integer. Assigning default minimum length (15 nt).'
+    if opt == '-x':
+        try:
+            maxlen = int(arg)
+        except:
+            print 'Warning: max length argument does not appear to be an integer. Assigning default maximum length (1000 nt).'
+    if opt == '-t':
+        try:
+            mintm = float(arg)
+        except:
+            print 'Warning: min tm value is not a number. Assigning a default tm of 40.0'
+    if opt == '-h':
+        print usage
+        exit()
+        
+print "APEFILE: "+apefile
+    
+i=0
 for seq_record in SeqIO.parse(apefile, "genbank"):
+    i+=1
     full_query = str(seq_record.seq)
     qlen = len(full_query)
     if qlen - 2 < maxlen:
         maxlen = qlen - 2
-        print "warning: BLAST query was shorter than maximum hit length. To avoid identifying its"
+        print "warning: BLAST query was shorter than maximum hit length. To avoid misidentifying its"
         print "own transcript as an off-target, setting maxlen to 2 nt less than the query length."
+        
+if i>1:
+    print "Warning: more than one sequence was detected in ApE file. Unexpected results may occur!"
 
 opp = int(0)
 same = int(0)
