@@ -153,8 +153,8 @@ with open(bfile, 'r') as blin:
                     continue
                 unique += 1
                 cross_hits[seq]=[tm, transcript, 1]
-print "Included "+str(unique) + " unique hits from "+str(same)+" total hits from same strand. Excluded "+str(opp)+" hits from opposite strand."
 
+print "Included "+str(unique) + " unique hits from "+str(same)+" total hits from same strand. Excluded "+str(opp)+" hits from opposite strand."
 
 seqs = list(seq for seq in cross_hits)  # get unordered list of seqs
 tms = numpy.array(list(cross_hits[seq][0] for seq in seqs)) # get list of tms in same order as the list of seqs
